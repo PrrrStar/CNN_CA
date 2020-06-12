@@ -1,11 +1,12 @@
 import torch
 import numpy as np
 
+import torchvision
 from torchvision import datasets
 import torchvision.transforms as transforms
 
 
-num_worker = 2
+num_worker = 0
 batch_size = 20
 
 transform = transforms.Compose([transforms.ToTensor(),
@@ -17,7 +18,19 @@ test_data = datasets.CIFAR10(root='data', train=False, download=True, transform=
 train_loader = torch.utils.data.DataLoader(train_data, batch_size=batch_size, num_workers = num_worker)
 test_loader = torch.utils.data.DataLoader(test_data, batch_size=batch_size, num_workers = num_worker)
 
+
+classes = ('plane', 'car', 'bird', 'cat',
+           'deer', 'dog', 'frog', 'horse', 'ship', 'truck')
+
 import matplotlib.pyplot as plt
+
+def imshow(img):
+    img = img / 2 + 0.5     # unnormalize
+    npimg = img.numpy()
+    plt.imshow(np.transpose(npimg, (1, 2, 0)))
+    plt.show()
+
+
 
 dataiter = iter(train_loader)
 #batch size 만큼 random 하게 데이터 뽑음
@@ -77,15 +90,10 @@ class Net(nn.Module):
 #        print("fc2\t",x.shape)
         return x
 
-if torch.cuda.is_available():
-    device = torch.device("cuda:0")
-    print(device)
-    model = Net().to(device)
-    
-else:
-    device = torch.device("cpu")
-    print(device)
-    model = Net()
+
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+print(device,"에서 학습중 ...")
+model = Net().to(device)
 
 
 print(model)
@@ -101,11 +109,12 @@ model.train()
 
 for epoch in range(n_epochs):
     train_loss = 0.0
+    loss_values = []
     
     #train model
     for i, data in enumerate(train_loader,0):
         
-        inputs, labels = data
+        inputs, labels = data[0].to(device), data[1].to(device)
         
         optimizer.zero_grad()           #all param -> zero
         
@@ -117,13 +126,90 @@ for epoch in range(n_epochs):
         optimizer.step()
         
         train_loss += loss.item()
+        loss_values.append(train_loss)
         if i % 2000 == 1999:
             print('[%d, %5d]\tloss : %.3f'%
                   (epoch +1, i+1, train_loss/2000))
 
 print("Finished!!")
+
+
+'''
+모델 저장
+'''
+PATH = './cifar_net.pth'
+torch.save(model.state_dict(), PATH)
+
+
+'''
+Sample Data로 Test
+'''
+dataiter = iter(test_loader)
+images, labels = dataiter.next()
+
+imshow(torchvision.utils.make_grid(images))
+print('GroundTruth: ', ' '.join('%5s' % classes[labels[j]] for j in range(4)))
+
+
+'''
+어떻게 신경망이 예측했는지 확인
+
+출력은 10개 분류 각각에 대한 값으로 나타납니다. 
+어떤 분류에 대해서 더 높은 값이 나타난다는 것은, 
+신경망이 그 이미지가 해당 분류에 더 가깝다고 생각한다는 것입니다. 
+따라서, 가장 높은 값을 갖는 인덱스(index)를 뽑아보겠습니다
+'''
+model = Net()
+model.load_state_dict(torch.load(PATH))
+outputs = model(images)
+
+_, predicted = torch.max(outputs, 1)
+print('Predicted: ', ' '.join('%5s' % classes[predicted[j]] for j in range(4)))
+
+
+
+'''
+전체 데이터 셋에 대해서 동작
+'''
+correct = 0
+total = 0
+with torch.no_grad():
+    for data in test_loader:
+        images, labels = data
+        outputs = model(images)
+        _, predicted = torch.max(outputs.data, 1)
+        total += labels.size(0)
+        correct += (predicted == labels).sum().item()
+
+print('Accuracy of the network on the 10000 test images: %d %%' % (
+    100 * correct / total))
+
+
+'''
+어떤걸 잘 분류했는 지 정확도 테스트
+'''
+class_correct = list(0. for i in range(10))
+class_total = list(0. for i in range(10))
+with torch.no_grad():
+    for data in test_loader:
+        images, labels = data
+        outputs = model(images)
+        _, predicted = torch.max(outputs, 1)
+        c = (predicted == labels).squeeze()
+        for i in range(4):
+            label = labels[i]
+            class_correct[label] += c[i].item()
+            class_total[label] += 1
+
+
+for i in range(10):
+    print('Accuracy of %5s : %2d %%' % (
+        classes[i], 100 * class_correct[i] / class_total[i]))
         
-        
+
+
+
+
 '''
 class_correct = list(0. for i in range(10))
 class_total_number = list(0. for i in range(10))
