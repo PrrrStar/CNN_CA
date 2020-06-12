@@ -8,7 +8,9 @@ import torchvision.transforms as transforms
 num_worker = 2
 batch_size = 20
 
-transform = transforms.ToTensor()
+transform = transforms.Compose([transforms.ToTensor(),
+                                transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
+
 train_data = datasets.CIFAR10(root='data', train=True, download=True, transform=transform)
 test_data = datasets.CIFAR10(root='data', train=False, download=True, transform=transform)
 
@@ -41,38 +43,38 @@ class Net(nn.Module):
     def __init__(self):
         super(Net, self).__init__()
         self.conv1 = nn.Conv2d(3, 16, kernel_size = 3, padding=1)        #input : 3, output : 16, kernel size = 3
-        self.conv2 = nn.Conv2d(16, 32 ,kernel_size = 3, padding=2)       #input : 16, output : 32, kernel size = 3
+        self.conv2 = nn.Conv2d(16, 32 ,kernel_size = 3, padding=1)       #input : 16, output : 32, kernel size = 3
         self.conv3 = nn.Conv2d(32, 64, kernel_size = 3, padding=1)       #input : 32, output : 64, kernel size = 3
       
-        self.pool = nn.MaxPool2d(kernel_size=2, stride = 1)
+        self.pool = nn.MaxPool2d(kernel_size=2, stride = 2)
         
-        self.fc1 = nn.Linear(32*32*5, 500)
+        self.fc1 = nn.Linear(64*4*4, 500)
         self.fc2 = nn.Linear(500, 10)        
         self.dropout = nn.Dropout(0.25)         #dropout 25%
 
     def forward(self, x):
         x = F.relu(self.conv1(x))
-        print("conv1\t",x.shape)
+#        print("conv1\t",x.shape)
         x = self.pool(x)
-        print("max1\t",x.shape)
+#        print("max1\t",x.shape)
         x = F.relu(self.conv2(x))
-        print("conv2\t",x.shape)
+#        print("conv2\t",x.shape)
         x = self.pool(x)
-        print("max2\t",x.shape)
+#        print("max2\t",x.shape)
         x = F.relu(self.conv3(x))
-        print("conv3\t",x.shape)
+#        print("conv3\t",x.shape)
         x = self.pool(x)
-        print("max3\t",x.shape)
+#        print("max3\t",x.shape)
         
-        x = x.view(-1, 5120)
+        x = x.view(-1, 64*4*4)
         x = self.dropout(x)
-        print("drop1\t",x.shape)
+#        print("drop1\t",x.shape)
         x = F.relu(self.fc1(x))                 #output size = 500
-        print("fc1\t",x.shape)
+#        print("fc1\t",x.shape)
         x = self.dropout(x)
-        print("drop2\t",x.shape)        
+#        print("drop2\t",x.shape)        
         x = self.fc2(x)
-        print("fc2\t",x.shape)
+#        print("fc2\t",x.shape)
         return x
 
 if torch.cuda.is_available():
@@ -116,7 +118,7 @@ for epoch in range(n_epochs):
         
         train_loss += loss.item()
         if i % 2000 == 1999:
-            print('[%d, %5d]\tloss : #.3f'%
+            print('[%d, %5d]\tloss : %.3f'%
                   (epoch +1, i+1, train_loss/2000))
 
 print("Finished!!")
