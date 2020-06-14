@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 import torch.optim as optim
 
+import matplotlib.pyplot as plt
 
 import torch.nn as nn
 import torch.nn.functional as F
@@ -37,11 +38,21 @@ x_train = torch.FloatTensor(x)
 y_train = torch.FloatTensor(y)
 y_train = y_train.view(100,1)
 
+loss_values =[]
+nb_epochs = 100000
+def loss_func_graph(nb_epochs):
+	epoch = str(nb_epochs)
+	title = 'Epoch'+epoch+'_Loss.png'
+	plt.plot(loss_values)
+	plt.title('loss_value')
+	plt.xlabel('Epochs')
+	plt.ylabel('loss')
+	plt.savefig(title)
+	plt.show()
 
 def GradientDescentAlgorithm():
     W = torch.rand((2, 1), requires_grad=True)
     b = torch.zeros(1, requires_grad=True)
-    
     def forward(X):
         return X*W
     
@@ -55,21 +66,22 @@ def GradientDescentAlgorithm():
         return torch.sigmoid(x_train.matmul(W) + b)
      
     optimizer = optim.SGD([W, b], lr=1)
-    
-    nb_epochs = 100000
+
     for epoch in range(nb_epochs + 1):
-    
+        train_loss=0.0 
         hypothesis = sigmoid(x_train)
         cost = cross_entropy(hypothesis, y_train)
         
         optimizer.zero_grad()
         cost.backward()
         optimizer.step()
-    
-        # 100번마다 로그 출력
+        train_loss += cost.item()
+        loss_values.append(train_loss)
+        
         if epoch % 10 == 0:
             pred = hypothesis >= torch.FloatTensor([0.5])
             correct = pred.float() == y_train
             accuracy = correct.sum().item() / len(correct) 
             print('Epoch {:4d}/{} Cost: {:.6f} Accuracy {:2.2f}'.format(epoch, nb_epochs, cost.item(), accuracy *100))
 GradientDescentAlgorithm()
+loss_func_graph(nb_epochs)
