@@ -148,6 +148,7 @@ model = FasterRCNN(backbone,
                    rpn_anchor_generator=anchor_generator,
                    box_roi_pool=roi_pooler)
 
+
 from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
 from torchvision.models.detection.mask_rcnn import MaskRCNNPredictor
 
@@ -162,6 +163,8 @@ def get_model_instance_segmentation(num_classes):
     model.roi_heads.mask_predictor = MaskRCNNPredictor(in_features_mask,
                                                        hidden_layer,
                                                        num_classes)
+
+
     return model
 
 
@@ -216,8 +219,9 @@ def main():
         dataset_test, batch_size=1, shuffle=False, num_workers=0,
         collate_fn=utils.collate_fn)
 
-    model = get_model_instance_segmentation(num_classes).to(device)
-
+    model = get_model_instance_segmentation(num_classes)
+    model = nn.DataParallel(model)
+    model = model.to(device)
     
     params = [p for p in model.parameters() if p.requires_grad]
     optimizer = torch.optim.SGD(params, lr=0.005,
@@ -235,4 +239,5 @@ def main():
         evaluate(model, data_loader_test, device=device)
 
     print("Finish!")
-    
+
+main()    
