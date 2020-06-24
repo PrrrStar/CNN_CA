@@ -183,7 +183,7 @@ sample traning
 
 model = torchvision.models.detection.fasterrcnn_resnet50_fpn(pretrained=True)
 dataset = loadImage('PennFudanPed', get_transform(train=True))
-data_loader = torch.utils.data.DataLoader(dataset, batch_size=2, shuffle=True, num_workers=0, collate_fn=utils.collate_fn)
+data_loader = torch.utils.data.DataLoader(dataset, batch_size=2, shuffle=True, num_workers=2, collate_fn=utils.collate_fn)
 
 images,targets = next(iter(data_loader))
 images = list(image for image in images)
@@ -212,11 +212,11 @@ def main():
     dataset_test = torch.utils.data.Subset(dataset_test, indices[-50:])
 
     data_loader = torch.utils.data.DataLoader(
-        dataset, batch_size=2, shuffle=True, num_workers=0,
+        dataset, batch_size=2, shuffle=True, num_workers=2,
         collate_fn=utils.collate_fn)
 
     data_loader_test = torch.utils.data.DataLoader(
-        dataset_test, batch_size=1, shuffle=False, num_workers=0,
+        dataset_test, batch_size=1, shuffle=False, num_workers=2,
         collate_fn=utils.collate_fn)
 
     model = get_model_instance_segmentation(num_classes)
@@ -231,7 +231,7 @@ def main():
                                                    step_size=3,
                                                    gamma=0.1)
     
-    num_epochs = 10
+    num_epochs = 3
 
     for epoch in range(num_epochs):
         train_one_epoch(model, optimizer, data_loader, device, epoch, print_freq=10)
