@@ -7,12 +7,19 @@ Created on Tue Jun 23 11:23:15 2020
 
 import os
 import numpy as np
-import torch
+
 from PIL import Image
+
 import utils
+import transforms as T
+
+import torch
 
 import torch.nn as nn
 import torch.nn.functional as F
+
+import torchvision
+from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
 
 class loadImage(object):
     def __init__(self, root, transforms):
@@ -118,21 +125,9 @@ class Net(nn.Module):
         
         return x
     
-import torchvision
-from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
+'''
 from torchvision.models.detection import FasterRCNN
 from torchvision.models.detection.rpn import AnchorGenerator
-
-
-
-model = torchvision.models.detection.fasterrcnn_resnet50_fpn(pretrained=True)
-num_classes = 2
-in_features = model.roi_heads.box_predictor.cls_score.in_features
-model.roi_heads.box_predictor = FastRCNNPredictor(in_features, num_classes)
-
-
-
-
 backbone = torchvision.models.mobilenet_v2(pretrained=True).features
 backbone.out_channels = 1280
 
@@ -147,8 +142,8 @@ model = FasterRCNN(backbone,
                    num_classes=2,
                    rpn_anchor_generator=anchor_generator,
                    box_roi_pool=roi_pooler)
+'''
 
-from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
 from torchvision.models.detection.mask_rcnn import MaskRCNNPredictor
 
 def get_model_instance_segmentation(num_classes):
@@ -165,7 +160,6 @@ def get_model_instance_segmentation(num_classes):
     return model
 
 
-import transforms as T
 
 def get_transform(train):
     transforms = []
@@ -174,26 +168,8 @@ def get_transform(train):
         transforms.append(T.RandomHorizontalFlip(0.5))
     return T.Compose(transforms)
 
-'''
-sample traning
-'''
-
-model = torchvision.models.detection.fasterrcnn_resnet50_fpn(pretrained=True)
-dataset = loadImage('PennFudanPed', get_transform(train=True))
-data_loader = torch.utils.data.DataLoader(dataset, batch_size=2, shuffle=True, num_workers=0, collate_fn=utils.collate_fn)
-
-images,targets = next(iter(data_loader))
-images = list(image for image in images)
-targets = [{k: v for k, v in t.items()} for t in targets]
-output = model(images,targets)   
-
-model.eval()
-x = [torch.rand(3, 300, 400), torch.rand(3, 500, 400)]
-predictions = model(x)
-
 
 from engine import train_one_epoch, evaluate
-import utils
 
 
 
@@ -235,4 +211,22 @@ def main():
         evaluate(model, data_loader_test, device=device)
 
     print("Finish!")
+
+  
+def prediction():
+    model = torchvision.models.detection.fasterrcnn_resnet50_fpn(pretrained=True)
+    dataset = loadImage('PennFudanPed', get_transform(train=True))
+    data_loader = torch.utils.data.DataLoader(dataset, batch_size=2, shuffle=True, num_workers=0, collate_fn=utils.collate_fn)
+    
+    images,targets = next(iter(data_loader))
+    images = list(image for image in images)
+    targets = [{k: v for k, v in t.items()} for t in targets]
+    output = model(images,targets)   
+    
+    model.eval()
+    x = [torch.rand(3, 300, 400), torch.rand(3, 500, 400)]
+    predictions = model(x)
+    
+if __name__ == "__main__":
+    main()
     
